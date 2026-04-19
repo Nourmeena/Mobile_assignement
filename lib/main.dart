@@ -17,8 +17,8 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
-      //home: const ProfileScreen(),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const ProfileScreen(),
+      //home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }

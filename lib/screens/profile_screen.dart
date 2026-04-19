@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io'; 
-import 'package:flutter/foundation.dart'; //
-
+import 'package:flutter/foundation.dart';
+// import 'package:path_provider/path_provider.dart'; // for getting app directory
+import '../database/db_helper.dart';
+import '../models/user_model.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,22 +18,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
   File? _image;           // for mobile
   Uint8List? _webImage;   // for web
   
-  final _nameController = TextEditingController(text: "Fatimah Atif");
-  final _idController = TextEditingController(text: "20201234");
-  final _emailController = TextEditingController(text: "20201234@stud.fci-cu.edu.eg");
+  // Controllers
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _idController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   
   final ImagePicker _picker = ImagePicker();
-  //for picking images from gallery or camera
+  final DBHelper _dbHelper = DBHelper(); // copy of DBHelper instance to use in this screen
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData(); //data load when screen opens
+  }
+
+  // function to fetch data from database and display it in the controllers
+  Future<void> _loadUserData() async {
+    UserModel? user = await _dbHelper.getUser();
+    if (user != null) {
+      setState(() {
+        _nameController.text = user.fullName;
+        _idController.text = user.studentId;
+        _emailController.text = user.email;
+        
+        // if there's a profile image path, load it (only for mobile, for web you might want to handle it differently)
+        if (user.profileImage != null && !kIsWeb) {
+          _image = File(user.profileImage!);
+        }
+      });
+    }
+  }
+
+  // save profile data to database
+  Future<void> _saveProfile() async {
+    UserModel user = UserModel(
+      fullName: _nameController.text,
+      studentId: _idController.text,
+      email: _emailController.text,
+      profileImage: _image?.path, // save path for mobile, for web you might want to save the image as base64 or handle it differently
+    );
+
+    await _dbHelper.saveUser(user);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Profile Updated: ${_nameController.text}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  // function to pick image from gallery or camera
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final pickedFile = await _picker.pickImage(source: source);
+      final XFile? pickedFile = await _picker.pickImage(source: source);
       
       if (pickedFile != null) {
-        // for web, we need to read as bytes; for mobile, we can use the file path
-        var f = await pickedFile.readAsBytes();
+        Uint8List bytes = await pickedFile.readAsBytes();
         
         setState(() {
-          _webImage = f; // save for web
+          _webImage = bytes; // save for web
           
           if (!kIsWeb) {
             _image = File(pickedFile.path);
@@ -119,14 +167,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 35),
             
-            //data fields
             buildProfileField("Full Name", _nameController, Icons.person_outline),
             buildProfileField("Student ID", _idController, Icons.badge_outlined),
             buildProfileField("University Email", _emailController, Icons.email_outlined),
             
             const SizedBox(height: 30),
             
-            //save button 
+            // Save button 
             SizedBox(
               width: double.infinity,
               height: 55,
@@ -135,14 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   backgroundColor: Colors.blueAccent,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
                 ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Profile Updated: ${_nameController.text}'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                },
+                onPressed: _saveProfile, // 
                 child: const Text(
                   'Save Changes', 
                   style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
