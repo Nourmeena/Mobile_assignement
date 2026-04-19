@@ -31,17 +31,25 @@ class DBHelper {
     return db;
   }
 
+  // الدالة المعدلة لضمان تحديث البيانات والصورة
   Future<int> saveUser(UserModel user) async {
     Database? dbClient = await db;
+    
+    // تحويل الـ user لـ Map وتثبيت الـ ID بـ 1 
+    // ده بيجبر قاعدة البيانات إنها تمسح بيانات الصف الأول وتحط الجديدة مكانها
+    Map<String, dynamic> userMap = user.toMap();
+    userMap['id'] = 1; 
+
     return await dbClient!.insert(
       'users', 
-      user.toMap(), 
-      conflictAlgorithm: ConflictAlgorithm.replace
+      userMap, 
+      conflictAlgorithm: ConflictAlgorithm.replace, // استبدال البيانات القديمة بالجديدة
     );
   }
 
   Future<UserModel?> getUser() async {
     Database? dbClient = await db;
+    // جلب الصف رقم 1 دايماً
     List<Map<String, dynamic>> maps = await dbClient!.query('users', limit: 1);
     if (maps.isNotEmpty) {
       return UserModel.fromMap(maps.first);

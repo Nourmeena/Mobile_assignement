@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io'; 
 import 'package:flutter/foundation.dart';
-// import 'package:path_provider/path_provider.dart'; // for getting app directory
 import '../database/db_helper.dart';
 import '../models/user_model.dart';
 
@@ -24,15 +23,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _emailController = TextEditingController();
   
   final ImagePicker _picker = ImagePicker();
-  final DBHelper _dbHelper = DBHelper(); // copy of DBHelper instance to use in this screen
+  final DBHelper _dbHelper = DBHelper();
 
   @override
   void initState() {
     super.initState();
-    _loadUserData(); //data load when screen opens
+    _loadUserData(); 
   }
 
-  // function to fetch data from database and display it in the controllers
+  // جلب البيانات من الداتابيز وعرضها
   Future<void> _loadUserData() async {
     UserModel? user = await _dbHelper.getUser();
     if (user != null) {
@@ -41,36 +40,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _idController.text = user.studentId;
         _emailController.text = user.email;
         
-        // if there's a profile image path, load it (only for mobile, for web you might want to handle it differently)
         if (user.profileImage != null && !kIsWeb) {
           _image = File(user.profileImage!);
+          // تصفير الكاش عشان الصورة الجديدة تظهر لو المسار متكرر
+          FileImage(_image!).evict(); 
         }
       });
     }
   }
 
-  // save profile data to database
+  // حفظ البيانات (متوافق مع الهيلبر المعدل)
   Future<void> _saveProfile() async {
     UserModel user = UserModel(
       fullName: _nameController.text,
       studentId: _idController.text,
       email: _emailController.text,
-      profileImage: _image?.path, // save path for mobile, for web you might want to save the image as base64 or handle it differently
+      profileImage: _image?.path, 
     );
 
     await _dbHelper.saveUser(user);
+    
+    // إعادة تحميل البيانات فوراً لتحديث الشاشة والصورة
+    await _loadUserData();
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Profile Updated: ${_nameController.text}'),
+          content: Text('Profile Updated Successfully!'),
           backgroundColor: Colors.green,
         ),
       );
     }
   }
 
-  // function to pick image from gallery or camera
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(source: source);
@@ -79,8 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Uint8List bytes = await pickedFile.readAsBytes();
         
         setState(() {
-          _webImage = bytes; // save for web
-          
+          _webImage = bytes; 
           if (!kIsWeb) {
             _image = File(pickedFile.path);
           }
@@ -173,7 +174,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             
             const SizedBox(height: 30),
             
-            // Save button 
             SizedBox(
               width: double.infinity,
               height: 55,
@@ -182,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   backgroundColor: Colors.blueAccent,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
                 ),
-                onPressed: _saveProfile, // 
+                onPressed: _saveProfile,
                 child: const Text(
                   'Save Changes', 
                   style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
