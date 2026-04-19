@@ -1,49 +1,47 @@
-class User {
+class UserModel {
   int? id;
   String fullName;
-  String email;
   String studentId;
-  String password;
+  String email;
+  String? password;
   String? gender;
-  int? academicLevel;
-  String? imagePath;
+  String? academicLevel;
+  String? profileImage;
 
-  User({
+  UserModel({
     this.id,
     required this.fullName,
-    required this.email,
     required this.studentId,
-    required this.password,
+    required this.email,
+    this.password,
     this.gender,
     this.academicLevel,
-    this.imagePath,
+    this.profileImage,
   });
 
-  // from object to Map to store in database
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'fullName': fullName,
-      'email': email,
       'studentId': studentId,
+      'email': email,
       'password': password,
       'gender': gender,
       'academicLevel': academicLevel,
-      'imagePath': imagePath,
+      'profileImage': profileImage,
     };
   }
 
-  // from Map to object when reading from database
-  factory User.fromMap(Map<String, dynamic> map) {
-    return User(
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel(
       id: map['id'],
-      fullName: map['fullName'],
-      email: map['email'],
-      studentId: map['studentId'],
+      fullName: map['fullName'] ?? '',
+      studentId: map['studentId'] ?? '',
+      email: map['email'] ?? '',
       password: map['password'],
       gender: map['gender'],
       academicLevel: map['academicLevel'],
-      imagePath: map['imagePath'],
+      profileImage: map['profileImage'],
     );
   }
 }

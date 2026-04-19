@@ -1,21 +1,23 @@
 import '../models/user_model.dart';
-import 'database_service.dart';
+import '../database/db_helper.dart';
 
 class AuthService {
-  final DatabaseService _db = DatabaseService();
+  final DBHelper _db = DBHelper();
 
   // signup
-  Future<String> signup(User user, String confirmPassword) async {
+  Future<String> signup(UserModel user, String confirmPassword) async {
+    final password = user.password;
     if (user.fullName.isEmpty ||
         user.email.isEmpty ||
         user.studentId.isEmpty ||
-        user.password.isEmpty) {
+        password == null ||
+        password.isEmpty) {
       return "Please fill all required fields";
     }
 
-    RegExp emailRegex = RegExp(r'^\d+@stud\.fci-cu\.edu\.eg$');
+    RegExp emailRandegex = RegExp(r'^\d+@stud\.fci-cu\.edu\.eg$');
 
-    if (!emailRegex.hasMatch(user.email)) {
+    if (!emailRandegex.hasMatch(user.email)) {
       return "Invalid university email format";
     }
 
@@ -24,15 +26,15 @@ class AuthService {
       return "Student ID does not match email";
     }
 
-    if (user.password.length < 8) {
+    if (password.length < 8) {
       return "Password must be at least 8 characters";
     }
 
-    if (!user.password.contains(RegExp(r'\d'))) {
+    if (!password.contains(RegExp(r'\d'))) {
       return "Password must contain at least one number";
     }
 
-    if (user.password != confirmPassword) {
+    if (password != confirmPassword) {
       return "Passwords do not match";
     }
 
@@ -47,17 +49,17 @@ class AuthService {
   }
 
   // login
-  Future<String> login(String email, String password) async {
+  Future<UserModel?> login(String email, String password) async {
     final user = await _db.getUserByEmail(email);
 
     if (user == null) {
-      return "User not found";
+      return null;
     }
 
     if (user.password != password) {
-      return "Incorrect password";
+      return null;
     }
 
-    return "Login Success";
+    return user;
   }
 }

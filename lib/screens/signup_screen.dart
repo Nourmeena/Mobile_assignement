@@ -28,13 +28,13 @@ class _SignupScreenState extends State<SignupScreen> {
   String message = "";
 
   void signup() async {
-    User user = User(
+    UserModel user = UserModel(
       fullName: nameController.text,
       email: emailController.text,
       studentId: studentIdController.text,
       password: passwordController.text,
       gender: selectedGender,
-      academicLevel: selectedLevel,
+      academicLevel: selectedLevel?.toString(),
     );
 
     String result = await _authService.signup(
@@ -61,6 +61,36 @@ class _SignupScreenState extends State<SignupScreen> {
           key: _formKey,
           child: ListView(
             children: [
+              const SizedBox(height: 50), // Spacing from the top
+              Text(
+                'Student Task Manager',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue[300], // Baby Blue
+                  letterSpacing: 1.2,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 10.0,
+                      color: Colors.pink[100]!, 
+                      offset: const Offset(2.0, 2.0),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Organize your academic life',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(
+                height: 40,
+              ), 
               // full Name
               TextFormField(
                 controller: nameController,
@@ -142,7 +172,22 @@ class _SignupScreenState extends State<SignupScreen> {
               SizedBox(height: 20),
 
               // signup Button
-              ElevatedButton(onPressed: signup, child: Text("Signup")),
+              ElevatedButton(onPressed: signup, child: Text("Signup"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF89CFF0), 
+                  foregroundColor: Colors.white, 
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15), 
+                  ),
+                  elevation: 5,
+                  shadowColor: const Color(
+                    0xFFF2B1D8,
+                  ).withOpacity(0.5), 
+                ),
+              ),
+
+              
 
               SizedBox(height: 10),
 
