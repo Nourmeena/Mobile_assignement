@@ -29,10 +29,10 @@ class _SignupScreenState extends State<SignupScreen> {
 
   void signup() async {
     UserModel user = UserModel(
-      fullName: nameController.text,
-      email: emailController.text,
-      studentId: studentIdController.text,
-      password: passwordController.text,
+      fullName: nameController.text.trim(),
+      email: emailController.text.trim(),
+      studentId: studentIdController.text.trim(),
+      password: passwordController.text.trim(),
       gender: selectedGender,
       academicLevel: selectedLevel?.toString(),
     );

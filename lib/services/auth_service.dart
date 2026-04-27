@@ -7,9 +7,12 @@ class AuthService {
   // signup
   Future<String> signup(UserModel user, String confirmPassword) async {
     final password = user.password;
+    String email = user.email.trim();
+    String studentId = user.studentId.trim();
+
     if (user.fullName.isEmpty ||
-        user.email.isEmpty ||
-        user.studentId.isEmpty ||
+        email.isEmpty ||
+        studentId.isEmpty ||
         password == null ||
         password.isEmpty) {
       return "Please fill all required fields";
@@ -17,7 +20,7 @@ class AuthService {
 
     RegExp emailRandegex = RegExp(r'^\d+@stud\.fci-cu\.edu\.eg$');
 
-    if (!emailRandegex.hasMatch(user.email)) {
+    if (!emailRandegex.hasMatch(email)) {
       return "Invalid university email format";
     }
 

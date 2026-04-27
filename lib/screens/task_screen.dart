@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../database/db_helper.dart';
 import '../models/task_model.dart';
-import 'profile_screen.dart';
+
 
 class TaskScreen extends StatefulWidget {
   final int? userId;
@@ -144,16 +144,6 @@ class _TaskScreenState extends State<TaskScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person_outline, color: Colors.white),
-            tooltip: 'Profile',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => ProfileScreen(userId: widget.userId!)),
-              );
-            },
-          ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             tooltip: 'Logout',
