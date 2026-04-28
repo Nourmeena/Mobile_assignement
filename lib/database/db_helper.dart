@@ -13,10 +13,10 @@ class DBHelper {
   }
 
   Future<Database> initDatabase() async {
-    String path = join(await getDatabasesPath(), 'users_data.db');
+    String path = join(await getDatabasesPath(), 'users_data_v2.db');
     Database db = await openDatabase(
       path, 
-      version: 2, 
+      version: 3, 
       onCreate: (Database db, int version) async {
         await db.execute('''
           CREATE TABLE users (
@@ -38,6 +38,7 @@ class DBHelper {
             dueDate TEXT NOT NULL,
             priority TEXT NOT NULL,
             isCompleted INTEGER NOT NULL DEFAULT 0,
+            isFavorite INTEGER NOT NULL DEFAULT 0,
             userId INTEGER
           )
         ''');
@@ -52,9 +53,19 @@ class DBHelper {
               dueDate TEXT NOT NULL,
               priority TEXT NOT NULL,
               isCompleted INTEGER NOT NULL DEFAULT 0,
+              isFavorite INTEGER NOT NULL DEFAULT 0,
               userId INTEGER
             )
           ''');
+        }
+        if (oldVersion < 3) {
+          final cols = await db.rawQuery('PRAGMA table_info(tasks)');
+          final colNames = cols.map((c) => c['name'] as String).toSet();
+          if (!colNames.contains('isFavorite')) {
+            await db.execute(
+              'ALTER TABLE tasks ADD COLUMN isFavorite INTEGER NOT NULL DEFAULT 0',
+            );
+          }
         }
       },
     );

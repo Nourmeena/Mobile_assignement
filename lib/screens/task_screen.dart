@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../database/db_helper.dart';
+import 'package:provider/provider.dart';
+import '../providers/task_provider.dart';
 import '../models/task_model.dart';
-
 
 class TaskScreen extends StatefulWidget {
   final int? userId;
@@ -12,10 +12,7 @@ class TaskScreen extends StatefulWidget {
 }
 
 class _TaskScreenState extends State<TaskScreen> {
-  final DBHelper _dbHelper = DBHelper();
-  List<TaskModel> _tasks = [];
   String _filterPriority = 'All';
-  bool _isLoading = true;
 
   static const Map<String, Color> _priorityColors = {
     'High': Color(0xFFE53935),
@@ -29,38 +26,13 @@ class _TaskScreenState extends State<TaskScreen> {
     'Low': Icons.arrow_downward_rounded,
   };
 
-  @override
-  void initState() {
-    super.initState();
-    _loadTasks(initialLoad: true);
-  }
-
-  Future<void> _loadTasks({bool initialLoad = false}) async {
-    if (initialLoad) setState(() => _isLoading = true);
-    if (widget.userId == null) return;
-    final tasks = await _dbHelper.getAllTasks(userId: widget.userId);
-    if (mounted) {
-      setState(() {
-        _tasks = tasks;
-        _isLoading = false;
-      });
-    }
-  }
-
-  List<TaskModel> get _filteredTasks {
-    if (_filterPriority == 'All') return _tasks;
-    return _tasks.where((t) => t.priority == _filterPriority).toList();
-  }
-
-  int get _pendingCount => _tasks.where((t) => !t.isCompleted).length;
-  int get _completedCount => _tasks.where((t) => t.isCompleted).length;
-
-  Future<void> _toggleCompletion(TaskModel task) async {
-    await _dbHelper.toggleTaskCompletion(task.id!, !task.isCompleted);
-    await _loadTasks();
+  List<TaskModel> _filtered(List<TaskModel> tasks) {
+    if (_filterPriority == 'All') return tasks;
+    return tasks.where((t) => t.priority == _filterPriority).toList();
   }
 
   Future<void> _deleteTask(TaskModel task) async {
+    final provider = context.read<TaskProvider>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -84,8 +56,7 @@ class _TaskScreenState extends State<TaskScreen> {
       ),
     );
     if (confirmed == true) {
-      await _dbHelper.deleteTask(task.id!);
-      await _loadTasks();
+      await provider.deleteTask(task.id!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -106,19 +77,16 @@ class _TaskScreenState extends State<TaskScreen> {
       builder: (ctx) => _TaskFormSheet(
         existing: existing,
         onSave: (task) async {
+          final provider = context.read<TaskProvider>();
           if (existing == null) {
-            task.userId = widget.userId;
-            await _dbHelper.insertTask(task);
+            await provider.addTask(task);
           } else {
-            await _dbHelper.updateTask(task);
+            await provider.updateTask(task);
           }
-          await _loadTasks();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  existing == null ? 'Task added!' : 'Task updated!',
-                ),
+                content: Text(existing == null ? 'Task added!' : 'Task updated!'),
                 backgroundColor: Colors.blueAccent,
                 duration: const Duration(seconds: 2),
               ),
@@ -131,7 +99,9 @@ class _TaskScreenState extends State<TaskScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filteredTasks;
+    final provider = context.watch<TaskProvider>();
+    final allTasks = provider.tasks.toList();
+    final filtered = _filtered(allTasks);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -147,23 +117,22 @@ class _TaskScreenState extends State<TaskScreen> {
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             tooltip: 'Logout',
-            onPressed: () {
-              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-            },
+            onPressed: () =>
+                Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false),
           ),
         ],
       ),
       body: Column(
         children: [
-          _buildSummaryHeader(),
+          _buildSummaryHeader(provider),
           _buildFilterChips(),
           Expanded(
-            child: _isLoading
+            child: provider.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : filtered.isEmpty
                 ? _buildEmptyState()
                 : RefreshIndicator(
-                    onRefresh: _loadTasks,
+                    onRefresh: provider.loadTasks,
                     child: ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                       itemCount: filtered.length,
@@ -185,7 +154,7 @@ class _TaskScreenState extends State<TaskScreen> {
     );
   }
 
-  Widget _buildSummaryHeader() {
+  Widget _buildSummaryHeader(TaskProvider provider) {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -199,9 +168,9 @@ class _TaskScreenState extends State<TaskScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _statCard('Total', _tasks.length, Colors.white),
-          _statCard('Pending', _pendingCount, Colors.orangeAccent),
-          _statCard('Done', _completedCount, Colors.greenAccent),
+          _statCard('Total', provider.tasks.length, Colors.white),
+          _statCard('Pending', provider.pendingCount, Colors.orangeAccent),
+          _statCard('Done', provider.completedCount, Colors.greenAccent),
         ],
       ),
     );
@@ -225,10 +194,7 @@ class _TaskScreenState extends State<TaskScreen> {
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
         ],
       ),
     );
@@ -278,9 +244,7 @@ class _TaskScreenState extends State<TaskScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              isFiltered
-                  ? 'No $_filterPriority priority tasks'
-                  : 'No tasks yet!',
+              isFiltered ? 'No $_filterPriority priority tasks' : 'No tasks yet!',
               style: TextStyle(
                 color: Colors.grey[700],
                 fontSize: 18,
@@ -324,6 +288,7 @@ class _TaskScreenState extends State<TaskScreen> {
   }
 
   Widget _buildTaskCard(TaskModel task) {
+    final provider = context.read<TaskProvider>();
     final priorityColor = _priorityColors[task.priority] ?? Colors.blueAccent;
     final priorityIcon = _priorityIcons[task.priority] ?? Icons.remove;
 
@@ -377,7 +342,7 @@ class _TaskScreenState extends State<TaskScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       GestureDetector(
-                        onTap: () => _toggleCompletion(task),
+                        onTap: () => provider.toggleCompletion(task),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           width: 26,
@@ -395,11 +360,8 @@ class _TaskScreenState extends State<TaskScreen> {
                             ),
                           ),
                           child: task.isCompleted
-                              ? const Icon(
-                                  Icons.check,
-                                  size: 16,
-                                  color: Colors.white,
-                                )
+                              ? const Icon(Icons.check,
+                                  size: 16, color: Colors.white)
                               : null,
                         ),
                       ),
@@ -435,41 +397,40 @@ class _TaskScreenState extends State<TaskScreen> {
                               ),
                             ],
                             const SizedBox(height: 8),
-                            Row(
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 13,
-                                  color: Colors.grey[400],
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.calendar_today_outlined,
+                                        size: 13, color: Colors.grey[400]),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      task.dueDate,
+                                      style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  task.dueDate,
-                                  style: TextStyle(
-                                    color: Colors.grey[500],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: priorityColor.withValues(
-                                      alpha: 0.12,
-                                    ),
+                                    color: priorityColor.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(
-                                        priorityIcon,
-                                        size: 11,
-                                        color: priorityColor,
-                                      ),
+                                      Icon(priorityIcon,
+                                          size: 11, color: priorityColor),
                                       const SizedBox(width: 3),
                                       Text(
                                         task.priority,
@@ -487,20 +448,45 @@ class _TaskScreenState extends State<TaskScreen> {
                           ],
                         ),
                       ),
+                      // Favorite toggle
                       IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
                         icon: Icon(
-                          Icons.edit_outlined,
-                          color: Colors.blueAccent[100],
+                          task.isFavorite
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          color: task.isFavorite
+                              ? Colors.amber
+                              : Colors.grey[400],
                           size: 20,
                         ),
+                        tooltip: task.isFavorite
+                            ? 'Remove from favorites'
+                            : 'Add to favorites',
+                        onPressed: () => provider.toggleFavorite(task),
+                      ),
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        icon: Icon(Icons.edit_outlined,
+                            color: Colors.blueAccent[100], size: 20),
                         onPressed: () => _showTaskForm(existing: task),
                       ),
                       IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.redAccent,
-                          size: 20,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
                         ),
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.redAccent, size: 20),
                         onPressed: () => _deleteTask(task),
                       ),
                     ],
@@ -559,10 +545,14 @@ class _TaskFormSheetState extends State<_TaskFormSheet> {
   }
 
   Future<void> _pickDate() async {
+    final today = DateTime.now();
+    final firstAllowed = DateTime(today.year, today.month, today.day);
     final picked = await showDatePicker(
       context: context,
-      initialDate: _dueDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
+      initialDate: (_dueDate != null && !_dueDate!.isBefore(firstAllowed))
+          ? _dueDate!
+          : firstAllowed,
+      firstDate: firstAllowed,
       lastDate: DateTime(2100),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
@@ -586,6 +576,18 @@ class _TaskFormSheetState extends State<_TaskFormSheet> {
       return;
     }
 
+    final today = DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
+    if (_dueDate!.isBefore(todayOnly)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Due date cannot be in the past'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _saving = true);
 
     final task = TaskModel(
@@ -598,6 +600,7 @@ class _TaskFormSheetState extends State<_TaskFormSheet> {
           '${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}',
       priority: _priority,
       isCompleted: widget.existing?.isCompleted ?? false,
+      isFavorite: widget.existing?.isFavorite ?? false,
       userId: widget.existing?.userId,
     );
 
@@ -645,62 +648,49 @@ class _TaskFormSheetState extends State<_TaskFormSheet> {
               ),
               const SizedBox(height: 20),
 
-              // Title
               TextFormField(
                 controller: _titleController,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: _inputDecoration(
-                  'Task Title *',
-                  Icons.title_outlined,
-                ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Title is required'
-                    : null,
+                decoration: _inputDecoration('Task Title *', Icons.title_outlined),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Title is required' : null,
               ),
               const SizedBox(height: 16),
 
-              // Description
               TextFormField(
                 controller: _descController,
                 textCapitalization: TextCapitalization.sentences,
                 maxLines: 3,
                 decoration: _inputDecoration(
-                  'Description (optional)',
-                  Icons.notes_outlined,
-                ),
+                    'Description (optional)', Icons.notes_outlined),
               ),
               const SizedBox(height: 16),
 
-              // Due Date
               GestureDetector(
                 onTap: _pickDate,
                 child: AbsorbPointer(
                   child: TextFormField(
-                    decoration:
-                        _inputDecoration(
-                          _dueDate == null
-                              ? 'Due Date *'
-                              : 'Due Date: ${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}',
-                          Icons.calendar_today_outlined,
-                        ).copyWith(
-                          labelStyle: TextStyle(
-                            color: _dueDate != null
-                                ? Colors.blueAccent
-                                : Colors.grey[600],
-                          ),
-                        ),
+                    decoration: _inputDecoration(
+                      _dueDate == null
+                          ? 'Due Date *'
+                          : 'Due Date: ${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}',
+                      Icons.calendar_today_outlined,
+                    ).copyWith(
+                      labelStyle: TextStyle(
+                        color: _dueDate != null
+                            ? Colors.blueAccent
+                            : Colors.grey[600],
+                      ),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
 
-              // Priority
               const Text(
                 'Priority Level',
                 style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.blueAccent,
-                ),
+                    fontWeight: FontWeight.w600, color: Colors.blueAccent),
               ),
               const SizedBox(height: 10),
               Row(
@@ -748,7 +738,6 @@ class _TaskFormSheetState extends State<_TaskFormSheet> {
               ),
               const SizedBox(height: 28),
 
-              // Save button
               SizedBox(
                 width: double.infinity,
                 height: 54,

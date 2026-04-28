@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/task_screen.dart';
+import '../screens/favorites_screen.dart';
 import '../screens/deadline_screen.dart';
 import '../screens/profile_screen.dart';
 
@@ -23,6 +24,7 @@ class _MainScreenState extends State<MainScreen> {
 
     _screens = [
       TaskScreen(userId: widget.userId!),
+      const FavoritesScreen(),
       DeadlineScreen(userId: widget.userId!),
       ProfileScreen(userId: widget.userId!),
     ];
@@ -36,6 +38,7 @@ class _MainScreenState extends State<MainScreen> {
         currentIndex: _currentIndex,
         selectedItemColor: Colors.blueAccent,
         unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
@@ -43,6 +46,8 @@ class _MainScreenState extends State<MainScreen> {
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.task_alt), label: "Tasks"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.star_rounded), label: "Favorites"),
           BottomNavigationBarItem(icon: Icon(Icons.timer), label: "Deadline"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],

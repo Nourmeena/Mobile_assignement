@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/main_screen.dart';
 import 'database/db_helper.dart';
+import 'providers/task_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,8 +36,12 @@ class MyApp extends StatelessWidget {
         '/': (context) => LoginScreen(),
         '/signup': (context) => const SignupScreen(),
         '/home': (context) {
-          final userId = ModalRoute.of(context)!.settings.arguments as int?;
-          return MainScreen(userId: userId);
+          final userId =
+              ModalRoute.of(context)!.settings.arguments as int?;
+          return ChangeNotifierProvider(
+            create: (_) => TaskProvider()..init(userId!),
+            child: MainScreen(userId: userId),
+          );
         },
       },
     );

@@ -39,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Login")),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
@@ -87,7 +87,9 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(height: 20),
 
             // login Button
-            ElevatedButton(
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
               onPressed: login,
               child: Text("Login"),
               style: ElevatedButton.styleFrom(
@@ -100,6 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 elevation: 5,
                 shadowColor: const Color(0xFFF2B1D8).withOpacity(0.5),
               ),
+            ),
             ),
 
             SizedBox(height: 10),

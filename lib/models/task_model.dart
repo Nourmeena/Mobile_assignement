@@ -5,6 +5,7 @@ class TaskModel {
   String dueDate;
   String priority;
   bool isCompleted;
+  bool isFavorite;
   int? userId;
 
   TaskModel({
@@ -14,6 +15,7 @@ class TaskModel {
     required this.dueDate,
     required this.priority,
     this.isCompleted = false,
+    this.isFavorite = false,
     this.userId,
   });
 
@@ -25,6 +27,7 @@ class TaskModel {
       'dueDate': dueDate,
       'priority': priority,
       'isCompleted': isCompleted ? 1 : 0,
+      'isFavorite': isFavorite ? 1 : 0,
       'userId': userId,
     };
   }
@@ -37,6 +40,7 @@ class TaskModel {
       dueDate: map['dueDate'],
       priority: map['priority'],
       isCompleted: map['isCompleted'] == 1,
+      isFavorite: map['isFavorite'] == 1,
       userId: map['userId'],
     );
   }
@@ -48,6 +52,7 @@ class TaskModel {
     String? dueDate,
     String? priority,
     bool? isCompleted,
+    bool? isFavorite,
     int? userId,
   }) {
     return TaskModel(
@@ -57,6 +62,7 @@ class TaskModel {
       dueDate: dueDate ?? this.dueDate,
       priority: priority ?? this.priority,
       isCompleted: isCompleted ?? this.isCompleted,
+      isFavorite: isFavorite ?? this.isFavorite,
       userId: userId ?? this.userId,
     );
   }
